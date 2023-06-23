@@ -88,13 +88,16 @@ def load_align_model(language_code, device, model_name=None, model_dir=None):
 
 
 def align(
-    transcript: Iterator[SingleSegment],
+    transcript: Iterator[SingleSegment], # a dubbing script, likely very incorrect
     model: torch.nn.Module,
     align_model_metadata: dict,
     audio: Union[str, np.ndarray, torch.Tensor],
     device: str,
     interpolate_method: str = "nearest",
     return_char_alignments: bool = False,
+    paper_script=False,
+    safety = 5, # how much extra audio to include beyond the script range
+
 ) -> AlignedTranscriptionResult:
     """
     Align phoneme recognition predictions to known transcription.
@@ -161,9 +164,23 @@ def align(
     aligned_segments: List[SingleAlignedSegment] = []
 
     # 2. Get prediction matrix from alignment model & align
+    
     for sdx, segment in enumerate(transcript):
-        t1 = segment["start"]
-        t2 = segment["end"]
+        if paper_script:
+            if sdx>0:
+                last_seg = aligned_segments[-1]
+                if not "words" in last_seg or len(last_seg["words"])==0 or not "end" in last_seg["words"][-1]:
+                    t1 = last_seg["end"]
+                else:
+                    t1=last_seg["words"][-1]["end"]
+            else:
+                t1 = max(segment["start"]-safety,0)
+
+            t2 = min(segment["end"]+safety,MAX_DURATION)
+        else:
+            t1 = segment["start"]
+            t2 = segment["end"]
+            
         text = segment["text"]
 
         aligned_seg: SingleAlignedSegment = {
@@ -440,3 +457,4 @@ def merge_words(segments, separator="|"):
         else:
             i2 += 1
     return words
+
