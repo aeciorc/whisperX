@@ -88,7 +88,7 @@ def load_align_model(language_code, device, model_name=None, model_dir=None):
 
 
 def align(
-    transcript: Iterator[SingleSegment], # a dubbing script, likely very incorrect
+    transcript: Iterator[SingleSegment],
     model: torch.nn.Module,
     align_model_metadata: dict,
     audio: Union[str, np.ndarray, torch.Tensor],
